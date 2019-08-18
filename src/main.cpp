@@ -3,13 +3,25 @@
 int main(int argc, char *argv[])
 {
 	
-	if(argc != 2) {
-		std::cerr << "Please give a testCase file as input" << std::endl;
+  
+  gapSolver solver;
+  std::string policy;
+  
+  if(argc != 2 && argc != 3) {
+		std::cerr << "Please give a testCase file as input (and optionally, a policy)" << std::endl;
 		exit(-1);
   }
 
-  gapSolver solver(argv[1]);
-  solver.solveFirstProblem();
+  if(argc == 2){
+  solver = gapSolver(argv[1]);
+  }
+
+  else if(argc == 3){
+  policy = std::string(argv[2]);
+  solver = gapSolver(argv[1],policy);
+  }
+ 
+  solver.solve();
 
 	return 0;
 }
