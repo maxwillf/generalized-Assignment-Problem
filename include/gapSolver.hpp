@@ -27,7 +27,7 @@ public:
   void readProblemSetFile(std::string path);
 
   gapSolver();
-  gapSolver(std::string path, std::string Policy ="MAXIMUMCOST");
+  gapSolver(std::string path, std::string Policy ="MAXCOST");
 
   void solve();
   int getMinimumResourceCostAgent(int job, gapProblem problem);

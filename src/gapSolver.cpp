@@ -1,16 +1,13 @@
 #include "gapSolver.hpp"
   void gapSolver::readProblemSetFile(std::string path)
   {
-    std::ifstream ifs(path);
-    std::string line;
-    std::stringstream ss;
+    std::fstream fs(path);
 
     int problemSetSize = 0;
     int currentProblem = 0;
 
-    getline(ifs, line);
-    ss << line;
-    ss >> problemSetSize;
+    fs >> problemSetSize;
+
     //std::cout << problemSetSize << std::endl;
 
     while (currentProblem < problemSetSize)
@@ -18,20 +15,15 @@
       int numberOfAgents;
       int numberOfJobs;
       int currentNumber;
-      getline(ifs, line);
-      ss = std::stringstream(line);
-      ss >> numberOfAgents >> numberOfJobs;
+      fs >> numberOfAgents >> numberOfJobs;
       //std::cout << numberOfAgents << " " << numberOfJobs << std::endl;
       Matrix JobCostPerAgent(numberOfAgents);
 
       for (int i = 0; i < numberOfAgents; ++i)
       {
-        getline(ifs, line);
-        ss = std::stringstream(line);
-        //ss << line;
         for (int j = 0; j < numberOfJobs; ++j)
         {
-          ss >> currentNumber;
+          fs >> currentNumber;
           JobCostPerAgent[i].push_back(currentNumber);
         }
       }
@@ -41,23 +33,17 @@
 
       for (int i = 0; i < numberOfAgents; ++i)
       {
-        getline(ifs, line);
-        ss = std::stringstream(line);
-        //ss << line;
         for (int j = 0; j < numberOfJobs; ++j)
         {
-          ss >> currentNumber;
+          fs >> currentNumber;
           ResourceConsumed[i].push_back(currentNumber);
         }
       }
 
-      //std::cout << ResourceConsumed;
-      getline(ifs, line);
-      ss = std::stringstream(line);
       std::vector<int> MaximumResourcePerAgent;
       for (int i = 0; i < numberOfAgents; ++i)
       {
-        ss >> currentNumber;
+        fs >> currentNumber;
         MaximumResourcePerAgent.push_back(currentNumber);
       }
       problemSet.push_back(gapProblem(JobCostPerAgent, ResourceConsumed, MaximumResourcePerAgent));
@@ -116,6 +102,14 @@
           problem.linkAgentToJob(agentIndex, i);
         }
       }
+      //std::cout << problem.JobCostPerAgent;
+      //std::cout << problem.ResourceConsumedPerJob;
+      /* for (int i = 0; i < problem.MaximumResourcePerAgent.size(); i++)
+      {
+        std::cout << problem.MaximumResourcePerAgent[i] <<
+         " " << problem.CurrentResourcePerAgent[i] << std::endl; 
+      }*/
+      
       std::cout << "Solution value " << problem.solutionValue << std::endl;
     }
   }
