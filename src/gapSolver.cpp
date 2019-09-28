@@ -79,37 +79,61 @@
   }
 
   gapProblem gapSolver::branchAndBound(gapProblem problem) {
-	gapProblem current_optimum = heuristicSolve(problem);
+	gapProblem maxres = heuristicSolve(problem);
+	this->policy = HeuristicPolicy::MINRES;
+	gapProblem minres = heuristicSolve(problem);
+	gapProblem current_optimum = maxres.solutionValue > minres.solutionValue ? maxres : minres ;
 	double lower_bound = current_optimum.currentBoundingValue();
-	std::queue<gapProblem> candidate_queue;
+	std::vector<gapProblem> candidate_queue;
 	candidate_queue = problem.getCandidateSolutions();
+	int amountOfVerifiedNodes = 0;
+
+	std:: cout << current_optimum;
 
 	while(!candidate_queue.empty()){
-		auto node = candidate_queue.front();
-		candidate_queue.pop();
+		auto node = candidate_queue.back();
+		candidate_queue.pop_back();
 
-		if(node.NotAllocatedJobs.size() == 0){
-			if(node.solutionValue > lower_bound){
+		auto children = node.getCandidateSolutions();
+
+		if(children.size() == 0){
+			if(node.solutionValue > current_optimum.solutionValue){
 				current_optimum = node;
-				//lower_bound = node.solutionValue;
 				lower_bound = node.currentBoundingValue();
+				amountOfVerifiedNodes++;
 			}
 		}
 
 		else {
-			auto children = node.getCandidateSolutions();
+				if(amountOfVerifiedNodes % 100000 == 0) {
+					std::cout << "Current children array size " << children.size() << std::endl;
+				}
 			while(!children.empty()){
-				auto child = children.front();
-				children.pop();
-//				std::cout << child.currentBoundingValue() << std::endl;
-				if(/*boundingFunction(child)*/child.currentBoundingValue() >= lower_bound){
-					candidate_queue.push(child);
+				auto child = children.back();
+				children.pop_back();
+				if(amountOfVerifiedNodes % 1000000 == 0) {
+				std::cout << "Amount of Nodes Verified "  << amountOfVerifiedNodes << std::endl;
+				std::cout << "Current lower bound Value " << lower_bound << std::endl;
+				std::cout << "Size of candidate queue "   << candidate_queue.size() << std::endl;
+				std::cout << current_optimum;
+				}
+				amountOfVerifiedNodes++;
+				double currentChildBoudingValue = child.currentBoundingValue();
+//				std::cout << "Size of Child Not Allocated jobs " << child.NotAllocatedJobs.size() << std::endl;
+				if(currentChildBoudingValue >= lower_bound){
+				//	std::cout << "Current child bound value" <<  << std::endl;
+					candidate_queue.push_back(child);
 				}
 			}
 		}
+		if(amountOfVerifiedNodes % 1000000 == 0) {
+		std::cout << "Amount of Nodes Verified "  << amountOfVerifiedNodes << std::endl;
+		std::cout << "Current lower bound Value " << lower_bound << std::endl;
+		std::cout << "Size of candidate queue "   << candidate_queue.size() << std::endl;
+		std::cout << current_optimum;
+		}
 	}
-				std::cout << lower_bound;
-
+	std::cout << current_optimum;
 	return current_optimum;
   }
 
@@ -145,6 +169,7 @@
 //	auto solution = heuristicSolve(problem);
 	auto solution = branchAndBound(problem);
       std::cout << "Solution value " << solution.solutionValue << std::endl;
+      break;
     }
   }
 
@@ -184,18 +209,3 @@
     return maximumIndex;
   }
 
-double gapSolver::boundingFunction(gapProblem problem){
-	double boundingValue = 0;
-	for(int job : problem.NotAllocatedJobs){
-		for(int agent = 0 ; agent < problem.numberOfAgents; agent++){
-			if (problem.CurrentResourcePerAgent[agent]
-		            + problem.ResourceConsumedPerJob[agent][job]
-			    < problem.MaximumResourcePerAgent[agent]){
-
-				boundingValue += problem.JobCostPerAgent[agent][job] /problem.ResourceConsumedPerJob[agent][job];
-			}
-		}
-	}
-
-	return boundingValue;
-}
