@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <string>
 #include <cctype>
+#include <set>
 #include "gapProblem.hpp"
 
 #define INF ((unsigned) ~0)
@@ -18,6 +19,7 @@ class gapSolver
 
 private:
   std::vector<gapProblem> problemSet;
+  std::set<std::string> visitedNodesSet;
   HeuristicPolicy policy;
   
   
@@ -36,6 +38,8 @@ public:
   int getMinimumResourceCostAgent(int job, gapProblem problem);
   int getMaximumCostAvailableAgent(int job, gapProblem problem);
   double boundingFunction(gapProblem problem);
+  std::vector<gapProblem> getCandidateSolutions(gapProblem problem);
+  bool validateListResult(gapProblem problem, std::vector<int> solution);
 };
 
 #endif
