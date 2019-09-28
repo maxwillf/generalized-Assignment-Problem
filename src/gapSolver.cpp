@@ -78,10 +78,42 @@
     exit(-1);
   }
 
-  void gapSolver::solve()
-  {
-    for (gapProblem problem : problemSet)
-    {
+  gapProblem gapSolver::branchAndBound(gapProblem problem) {
+	gapProblem current_optimum = heuristicSolve(problem);
+	double lower_bound = current_optimum.currentBoundingValue();
+	std::queue<gapProblem> candidate_queue;
+	candidate_queue = problem.getCandidateSolutions();
+
+	while(!candidate_queue.empty()){
+		auto node = candidate_queue.front();
+		candidate_queue.pop();
+
+		if(node.NotAllocatedJobs.size() == 0){
+			if(node.solutionValue > lower_bound){
+				current_optimum = node;
+				//lower_bound = node.solutionValue;
+				lower_bound = node.currentBoundingValue();
+			}
+		}
+
+		else {
+			auto children = node.getCandidateSolutions();
+			while(!children.empty()){
+				auto child = children.front();
+				children.pop();
+//				std::cout << child.currentBoundingValue() << std::endl;
+				if(/*boundingFunction(child)*/child.currentBoundingValue() >= lower_bound){
+					candidate_queue.push(child);
+				}
+			}
+		}
+	}
+				std::cout << lower_bound;
+
+	return current_optimum;
+  }
+
+  gapProblem gapSolver::heuristicSolve(gapProblem problem) {
       Matrix JobCostPerAgent = problem.JobCostPerAgent;
       for (int i = 0; i < problem.numberOfJobs; i++)
       {
@@ -102,15 +134,17 @@
           problem.linkAgentToJob(agentIndex, i);
         }
       }
-      //std::cout << problem.JobCostPerAgent;
-      //std::cout << problem.ResourceConsumedPerJob;
-      /* for (int i = 0; i < problem.MaximumResourcePerAgent.size(); i++)
-      {
-        std::cout << problem.MaximumResourcePerAgent[i] <<
-         " " << problem.CurrentResourcePerAgent[i] << std::endl; 
-      }*/
-      
-      std::cout << "Solution value " << problem.solutionValue << std::endl;
+
+      return problem;
+  }
+
+  void gapSolver::heuristicSolveAll()
+  {
+    for (gapProblem problem : problemSet)
+    {
+//	auto solution = heuristicSolve(problem);
+	auto solution = branchAndBound(problem);
+      std::cout << "Solution value " << solution.solutionValue << std::endl;
     }
   }
 
@@ -129,9 +163,6 @@
         }
       }
     }
-    //std::cout << problem.JobCostPerAgent << std::endl;
-    //std::cout << minimumIndex << std::endl;
-    //std::cout << minimum << std::endl;
     return minimumIndex;
   }
 
@@ -150,9 +181,21 @@
         }
       }
     }
-    //std::cout << problem.JobCostPerAgent << std::endl;
-    //std::cout << maximumIndex << std::endl;
-    //std::cout << maximum << std::endl;
     return maximumIndex;
   }
 
+double gapSolver::boundingFunction(gapProblem problem){
+	double boundingValue = 0;
+	for(int job : problem.NotAllocatedJobs){
+		for(int agent = 0 ; agent < problem.numberOfAgents; agent++){
+			if (problem.CurrentResourcePerAgent[agent]
+		            + problem.ResourceConsumedPerJob[agent][job]
+			    < problem.MaximumResourcePerAgent[agent]){
+
+				boundingValue += problem.JobCostPerAgent[agent][job] /problem.ResourceConsumedPerJob[agent][job];
+			}
+		}
+	}
+
+	return boundingValue;
+}

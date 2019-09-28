@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
   solver = gapSolver(argv[1],policy);
   }
  
-  solver.solve();
+  solver.heuristicSolveAll();
 
 	return 0;
 }

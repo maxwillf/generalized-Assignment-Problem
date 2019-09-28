@@ -29,9 +29,13 @@ public:
   gapSolver();
   gapSolver(std::string path, std::string Policy ="MAXCOST");
 
-  void solve();
+  gapProblem heuristicSolve(gapProblem problem);
+  gapProblem branchAndBound(gapProblem problem);
+  void heuristicSolveAll();
+
   int getMinimumResourceCostAgent(int job, gapProblem problem);
   int getMaximumCostAvailableAgent(int job, gapProblem problem);
+  double boundingFunction(gapProblem problem);
 };
 
 #endif

@@ -3,7 +3,7 @@
 Target = gap
 INCLUDES = include
 HEADERS = $(wildcard $(INCLUDES)/*)
-CXX = g++
+CXX = c++
 CXXFLAGS = -std=c++11 -g -ggdb -I $(INCLUDES)
 DOCS = html latex
 RM = -rm
