@@ -199,10 +199,8 @@ void gapSolver::heuristicSolveAll()
     //	auto solution = heuristicSolve(problem);
     auto solution = branchAndBound(problemSet[i]);
     std::cout << "Solution value " << solution.solutionValue << std::endl;
-    validateListResult(problemSet[i],solution.solutionList);
+    validateListResult(solution,solution.solutionList);
   }
-  //auto solution = branchAndBound(problemSet[3]);
-//  std::cout << "Solution value " << solution.solutionValue << std::endl;
 }
 
 int gapSolver::getMinimumResourceCostAgent(int job, gapProblem problem)
