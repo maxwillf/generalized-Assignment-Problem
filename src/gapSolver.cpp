@@ -82,33 +82,23 @@ HeuristicPolicy gapSolver::stringToPolicy(std::string policyStr)
 gapProblem gapSolver::branchAndBound(gapProblem problem)
 {
   visitedNodesSet = std::set<std::string>();
-  this->policy = HeuristicPolicy::MINRES;
   gapProblem maxres = heuristicSolve(problem);
+  this->policy = HeuristicPolicy::MINRES;
   gapProblem minres = heuristicSolve(problem);
   gapProblem current_optimum = maxres.solutionValue > minres.solutionValue ? maxres : minres;
-  double lower_bound = current_optimum.currentBoundingValue();
+  int lower_bound = current_optimum.currentBoundingValue();
   std::vector<gapProblem> candidate_queue;
   candidate_queue = getCandidateSolutions(problem);
   int amountOfVerifiedNodes = 0;
 
   std::set<std::string> nodeSet;
 
-  std::cout << current_optimum;
+  //std::cout << current_optimum;
 
   while (!candidate_queue.empty())
   {
     auto node = candidate_queue.back();
     candidate_queue.pop_back();
-
-    if (nodeSet.find(node.toHash()) != nodeSet.end())
-    {
-      continue;
-    }
-
-    else
-    {
-      nodeSet.insert(node.toHash());
-    }
 
     auto children = getCandidateSolutions(node);
 
@@ -124,43 +114,24 @@ gapProblem gapSolver::branchAndBound(gapProblem problem)
 
     else
     {
-   //   if (amountOfVerifiedNodes % 1000000 == 0)
-   //   {
-   //     std::cout << "Current children array size " << children.size() << std::endl;
-   //   }
       while (!children.empty())
       {
         auto child = children.back();
         children.pop_back();
-   //     if (amountOfVerifiedNodes % 1000000 == 0)
-   //     {
-   //       std::cout << "Amount of Nodes Verified " << amountOfVerifiedNodes << std::endl;
-   //       std::cout << "Current lower bound Value " << lower_bound << std::endl;
-   //       std::cout << "Size of candidate queue " << candidate_queue.size() << std::endl;
-   //       std::cout << current_optimum;
-   //     }
         amountOfVerifiedNodes++;
-        double currentChildBoudingValue = child.currentBoundingValue();
-        //				std::cout << "Size of Child Not Allocated jobs " << child.NotAllocatedJobs.size() << std::endl;
+        int currentChildBoudingValue = child.currentBoundingValue();
         if (currentChildBoudingValue >= lower_bound)
         {
-          //	std::cout << "Current child bound value" <<  << std::endl;
           candidate_queue.push_back(child);
         }
       }
     }
-  //  if (amountOfVerifiedNodes % 1000000 == 0)
-  //  {
-  //    std::cout << "Amount of Nodes Verified " << amountOfVerifiedNodes << std::endl;
-  //    std::cout << "Current lower bound Value " << lower_bound << std::endl;
-  //    std::cout << "Size of candidate queue " << candidate_queue.size() << std::endl;
-  //    std::cout << current_optimum;
-  //  }
   }
   std::cout << "Amount of Nodes Verified " << amountOfVerifiedNodes << std::endl;
   std::cout << "Current lower bound Value " << lower_bound << std::endl;
   std::cout << "Size of candidate queue " << candidate_queue.size() << std::endl;
   std::cout << current_optimum;
+  current_optimum.currentBoundingValue();
   return current_optimum;
 }
 
@@ -194,11 +165,10 @@ gapProblem gapSolver::heuristicSolve(gapProblem problem)
 void gapSolver::heuristicSolveAll()
 {
   //for (gapProblem problem : problemSet)
-  for (int i = 1; i < problemSet.size(); i++)
+  for (int i = 0; i < problemSet.size(); i++)
   {
     //	auto solution = heuristicSolve(problem);
     auto solution = branchAndBound(problemSet[i]);
-    std::cout << "Solution value " << solution.solutionValue << std::endl;
     validateListResult(solution,solution.solutionList);
   }
 }
@@ -242,23 +212,19 @@ int gapSolver::getMaximumCostAvailableAgent(int job, gapProblem problem)
 std::vector<gapProblem> gapSolver::getCandidateSolutions(gapProblem problem)
 {
   std::vector<gapProblem> candidates;
-
-  for (int job : problem.NotAllocatedJobs)
-  {
+  int jobIndex = 
+    std::distance(problem.solutionList.begin(),
+                  std::find(problem.solutionList.begin(),problem.solutionList.end(), -1)
+    );
     for (int agent = 0; agent < problem.numberOfAgents; agent++)
     {
-      if (problem.agentCanDoJob(agent, job))
+      if (problem.agentCanDoJob(agent, jobIndex))
       {
         gapProblem newProb(problem);
-        newProb.linkAgentToJob(agent, job);
-        auto hash = newProb.toHash(); 
-        if(visitedNodesSet.find(hash) == visitedNodesSet.end()){
-          visitedNodesSet.insert(hash);
-          candidates.push_back(newProb);
-        }
+        newProb.linkAgentToJob(agent, jobIndex);
+        candidates.push_back(newProb);
       }
     }
-  }
   return candidates;
 }
 
@@ -276,6 +242,6 @@ std::vector<gapProblem> gapSolver::getCandidateSolutions(gapProblem problem)
     }
     std::cout << (problem.solutionValue == oldSolutionValue ?
      "Validado" : "Não Validado") << std::endl;
-     std::cout << problem.solutionValue << std::endl;
+     //std::cout << problem.solutionValue << std::endl;
     return problem.solutionValue == oldSolutionValue;
   }

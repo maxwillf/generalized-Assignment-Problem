@@ -84,7 +84,7 @@ public:
     return MaximumResourcePerAgent[agent] > agentResource;
   }
 
-  double currentBoundingValue()
+  int currentBoundingValue()
   {
     int boundValue = 0;
     for (int i = 0; i < numberOfJobs; i++)
@@ -101,7 +101,7 @@ public:
       gapProblem gapCopy = *this;
       for (int job : NotAllocatedJobs)
       {
-        std::vector<double> bounds;
+        std::vector<int> bounds;
         for (int i = 0; i < numberOfAgents; i++)
         {
           if (gapCopy.agentCanDoJob(i, job))
@@ -113,89 +113,16 @@ public:
             bounds.push_back(0);
           }
         }
-        int agentIndex = std::max_element(bounds.begin(), bounds.end()) - bounds.begin();
-        gapCopy.linkAgentToJob(agentIndex,job);
-        //boundValue += JobCostPerAgent[agentIndex][job];
-      }
-      boundValue = gapCopy.solutionValue;
-    }
-    return boundValue;
-  }
-/*
-  double currentBoundingValue()
-  {
-    double boundValue = 0;
-    for (int i = 0; i < numberOfJobs; i++)
-    {
-      int agentIndex = solutionList[i];
-      if (agentIndex != -1)
-      {
-        boundValue += (double)JobCostPerAgent[agentIndex][i] /
-                      (double)ResourceConsumedPerJob[agentIndex][i];
-      }
-    }
-
-    if (NotAllocatedJobs.size() != 0)
-    {
-
-      for (int job : NotAllocatedJobs)
-      {
-        std::vector<double> bounds;
-        for (int i = 0; i < numberOfAgents; i++)
-        {
-          if (agentCanDoJob(i, job))
-          {
-            bounds.push_back(JobCostPerAgent[i][job] / ResourceConsumedPerJob[i][job]);
-          }
-          else
-          {
-            bounds.push_back(0);
-          }
+        auto maxElem = std::max_element(bounds.begin(), bounds.end());
+        if(*maxElem > 0){
+        int agentIndex = maxElem - bounds.begin();
+        //gapCopy.linkAgentToJob(agentIndex,job);
+        boundValue += JobCostPerAgent[agentIndex][job];
         }
-        int agentIndex = std::max_element(bounds.begin(), bounds.end()) - bounds.begin();
-        boundValue += (double)JobCostPerAgent[agentIndex][job] /
-                      (double)ResourceConsumedPerJob[agentIndex][job];
       }
+      //boundValue = gapCopy.solutionValue;
     }
     return boundValue;
-  }*/
-  /* 
-  double currentBoundingValue(){
-	  int currentSolutionValue = this->solutionValue;
-//	  double boundingValue = 0;
-	double sumOfResources = this->allocatedResources;
-
-//		boundingValue = solutionValue / sumOfResources;
-
-	if(NotAllocatedJobs.size() != 0){
-
-		for(int job : NotAllocatedJobs){
-			std::vector<double>  bounds;
-			for(int i = 0; i < numberOfAgents; i++){
-				if(agentCanDoJob(i,job)){
-				bounds.push_back(JobCostPerAgent[i][job]/ResourceConsumedPerJob[i][job]);
-				}
-				else {
-					bounds.push_back(0);
-				}
-			}
-			int agentIndex = std::max_element(bounds.begin(), bounds.end()) - bounds.begin();
-			sumOfResources += ResourceConsumedPerJob[agentIndex][job];
-			currentSolutionValue += JobCostPerAgent[agentIndex][job];
-			
-		}
-	}
-	return currentSolutionValue / sumOfResources;
-  }*/
-
-  std::string toHash()
-  {
-    std::string hash = "";
-    for (int i = 0; i < numberOfJobs; i++)
-    {
-      hash += std::to_string(solutionList[i]);
-    }
-    return hash;
   }
 };
 
