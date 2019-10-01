@@ -19,9 +19,7 @@ class gapSolver
 
 private:
   std::vector<gapProblem> problemSet;
-  std::set<std::string> visitedNodesSet;
   HeuristicPolicy policy;
-  
   
   HeuristicPolicy stringToPolicy(std::string policyStr);
 
@@ -33,8 +31,10 @@ public:
 
   gapProblem heuristicSolve(gapProblem problem);
   gapProblem branchAndBound(gapProblem problem);
-  void heuristicSolveAll();
-
+  gapProblem backTracking(gapProblem problem);
+  void heuristicSolveAll(); 
+  void backTrackingSolveAll();
+  void branchAndBoundSolveAll();
   int getMinimumResourceCostAgent(int job, gapProblem problem);
   int getMaximumCostAvailableAgent(int job, gapProblem problem);
   double boundingFunction(gapProblem problem);

@@ -81,30 +81,30 @@ public:
     if(agent < 0 || agent >= numberOfAgents || job < 0 || job >= numberOfJobs) return false;
 
     int agentResource = ResourceConsumedPerJob[agent][job] + CurrentResourcePerAgent[agent];
-    return MaximumResourcePerAgent[agent] > agentResource;
+    return MaximumResourcePerAgent[agent] >= agentResource;
   }
 
   int currentBoundingValue()
   {
-    int boundValue = 0;
-    for (int i = 0; i < numberOfJobs; i++)
-    {
-      int agentIndex = solutionList[i];
-      if (agentIndex != -1)
-      {
-        boundValue += JobCostPerAgent[agentIndex][i];
-      }
-    }
+    int boundValue = this->solutionValue;
+    //for (int i = 0; i < numberOfJobs; i++)
+    //{
+    //  int agentIndex = solutionList[i];
+    //  if (agentIndex != -1)
+    //  {
+    //    boundValue += JobCostPerAgent[agentIndex][i];
+    //  }
+    //}
 
     if (NotAllocatedJobs.size() != 0)
     {
-      gapProblem gapCopy = *this;
+    //  gapProblem gapCopy = *this;
       for (int job : NotAllocatedJobs)
       {
         std::vector<int> bounds;
         for (int i = 0; i < numberOfAgents; i++)
         {
-          if (gapCopy.agentCanDoJob(i, job))
+          if (agentCanDoJob(i, job))
           {
             bounds.push_back(JobCostPerAgent[i][job]);
           }
@@ -114,11 +114,11 @@ public:
           }
         }
         auto maxElem = std::max_element(bounds.begin(), bounds.end());
-        if(*maxElem > 0){
-        int agentIndex = maxElem - bounds.begin();
-        //gapCopy.linkAgentToJob(agentIndex,job);
-        boundValue += JobCostPerAgent[agentIndex][job];
-        }
+	if(*maxElem > 0){
+		int agentIndex = maxElem - bounds.begin();
+		//gapCopy.linkAgentToJob(agentIndex,job);
+		boundValue += JobCostPerAgent[agentIndex][job];
+	}
       }
       //boundValue = gapCopy.solutionValue;
     }
@@ -126,5 +126,5 @@ public:
   }
 };
 
-std::ostream &operator<<(std::ostream &os, gapProblem problem);
+std::ostream &operator<<(std::ostream &os, gapProblem& problem);
 #endif

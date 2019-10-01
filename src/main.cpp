@@ -20,8 +20,10 @@ int main(int argc, char *argv[])
   policy = std::string(argv[2]);
   solver = gapSolver(argv[1],policy);
   }
- 
-  solver.heuristicSolveAll();
+
+  //solver.heuristicSolveAll();
+  solver.branchAndBoundSolveAll();
+//  solver.backTrackingSolveAll();
 
 	return 0;
 }
