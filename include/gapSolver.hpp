@@ -7,21 +7,23 @@
 #include <algorithm>
 #include <string>
 #include <cctype>
-#include <set>
 #include "gapProblem.hpp"
 
 #define INF ((unsigned) ~0)
 
 enum class HeuristicPolicy {MAXCOST,MINRES};
+enum class SolverPolicy {HEURISTIC,BNB,BT};
 
 class gapSolver
 {
 
 private:
   std::vector<gapProblem> problemSet;
-  HeuristicPolicy policy;
+  SolverPolicy solverPolicy;
+  HeuristicPolicy heuristicPolicy;
   
-  HeuristicPolicy stringToPolicy(std::string policyStr);
+  SolverPolicy stringToPolicy(std::string policyStr);
+//  HeuristicPolicy stringToPolicy(std::string policyStr);
 
 public:
   void readProblemSetFile(std::string path);
@@ -32,6 +34,7 @@ public:
   gapProblem heuristicSolve(gapProblem problem);
   gapProblem branchAndBound(gapProblem problem);
   gapProblem backTracking(gapProblem problem);
+  void solveAll(); 
   void heuristicSolveAll(); 
   void backTrackingSolveAll();
   void branchAndBoundSolveAll();

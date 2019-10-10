@@ -7,13 +7,9 @@ int main(int argc, char *argv[])
   gapSolver solver;
   std::string policy;
   
-  if(argc != 2 && argc != 3) {
-		std::cerr << "Please give a testCase file as input (and optionally, a policy)" << std::endl;
+  if(argc != 3) {
+		std::cerr << "Please give a testCase file as input and a policy" << std::endl;
 		exit(-1);
-  }
-
-  if(argc == 2){
-  solver = gapSolver(argv[1]);
   }
 
   else if(argc == 3){
@@ -21,9 +17,6 @@ int main(int argc, char *argv[])
   solver = gapSolver(argv[1],policy);
   }
 
-  //solver.heuristicSolveAll();
-  solver.branchAndBoundSolveAll();
-//  solver.backTrackingSolveAll();
-
+  solver.solveAll();
 	return 0;
 }

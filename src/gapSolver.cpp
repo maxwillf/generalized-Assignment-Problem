@@ -1,5 +1,5 @@
 #include "gapSolver.hpp"
-#include <set>
+#include <functional>
 void gapSolver::readProblemSetFile(std::string path)
 {
   std::fstream fs(path);
@@ -62,10 +62,25 @@ gapSolver::gapSolver() {}
 
 gapSolver::gapSolver(std::string path, std::string policyStr)
 {
-  this->policy = stringToPolicy(policyStr);
+  this->solverPolicy = stringToPolicy(policyStr);
   readProblemSetFile(path);
 }
 
+SolverPolicy gapSolver::stringToPolicy(std::string policyStr)
+{
+  std::transform(policyStr.begin(), policyStr.end(), policyStr.begin(),
+                 [](unsigned char c) { return std::toupper(c); });
+  if (policyStr == "HEURISTIC")
+    return SolverPolicy::HEURISTIC;
+  if (policyStr == "BNB")
+    return SolverPolicy::BNB;
+  if (policyStr == "BT")
+    return SolverPolicy::BT;
+
+  std::cerr << "Invalid policy, expected MAXCOST OR MINRES and got something else" << std::endl;
+  exit(-1);
+}
+/*
 HeuristicPolicy gapSolver::stringToPolicy(std::string policyStr)
 {
   std::transform(policyStr.begin(), policyStr.end(), policyStr.begin(),
@@ -77,7 +92,7 @@ HeuristicPolicy gapSolver::stringToPolicy(std::string policyStr)
 
   std::cerr << "Invalid policy, expected MAXCOST OR MINRES and got something else" << std::endl;
   exit(-1);
-}
+}*/
 
 gapProblem gapSolver::backTracking(gapProblem problem)
 {
@@ -122,15 +137,13 @@ gapProblem gapSolver::backTracking(gapProblem problem)
 gapProblem gapSolver::branchAndBound(gapProblem problem)
 {
   gapProblem maxres = heuristicSolve(problem);
-  this->policy = HeuristicPolicy::MINRES;
+  this->heuristicPolicy = HeuristicPolicy::MINRES;
   gapProblem minres = heuristicSolve(problem);
   gapProblem current_optimum = maxres.solutionValue > minres.solutionValue ? maxres : minres;
   int lower_bound = current_optimum.currentBoundingValue();
   std::vector<gapProblem> candidate_queue;
   candidate_queue = getCandidateSolutions(problem);
   int amountOfVerifiedNodes = 0;
-
-  std::set<std::string> nodeSet;
 
   //std::cout << current_optimum;
 
@@ -179,7 +192,7 @@ gapProblem gapSolver::heuristicSolve(gapProblem problem)
   for (int i = 0; i < problem.numberOfJobs; i++)
   {
     int agentIndex = -1;
-    switch (policy)
+    switch (heuristicPolicy)
     {
     case HeuristicPolicy::MAXCOST:
       agentIndex = getMaximumCostAvailableAgent(i, problem);
@@ -200,11 +213,23 @@ gapProblem gapSolver::heuristicSolve(gapProblem problem)
   return problem;
 }
 
-void gapSolver::heuristicSolveAll()
+void gapSolver::solveAll()
 {
+//  gapProblem (gapSolver::* solveFunc)(gapProblem);
+	std::function<gapProblem(gapSolver&,gapProblem)> solveFunc;
+	switch(solverPolicy){
+	  case SolverPolicy::HEURISTIC:
+		  solveFunc =  &gapSolver::heuristicSolve;
+	  case SolverPolicy::BNB:
+		  solveFunc =  &gapSolver::branchAndBound;
+	  case SolverPolicy::BT:
+		  solveFunc =  &gapSolver::backTracking;
+  }
+
   for (gapProblem problem : problemSet)
   {
-    auto solution = heuristicSolve(problem);
+    auto solution = solveFunc(*this,problem);
+    //auto solution = (this->*solveFunc)(problem);
     validateListResult(solution,solution.solutionList);
   }
 }
