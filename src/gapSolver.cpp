@@ -70,14 +70,18 @@ SolverPolicy gapSolver::stringToPolicy(std::string policyStr)
 {
   std::transform(policyStr.begin(), policyStr.end(), policyStr.begin(),
                  [](unsigned char c) { return std::toupper(c); });
+
+  std::cout << policyStr << std::endl;
   if (policyStr == "HEURISTIC")
     return SolverPolicy::HEURISTIC;
   if (policyStr == "BNB")
     return SolverPolicy::BNB;
   if (policyStr == "BT")
     return SolverPolicy::BT;
+  if (policyStr == "TS")
+    return SolverPolicy::TS;
 
-  std::cerr << "Invalid policy, expected MAXCOST OR MINRES and got something else" << std::endl;
+  std::cerr << "Invalid policy, expected HEURISTIC,BNB, or BT and got something else" << std::endl;
   exit(-1);
 }
 /*
@@ -186,6 +190,106 @@ gapProblem gapSolver::branchAndBound(gapProblem problem)
   return current_optimum;
 }
 
+
+
+std::vector<gapProblem> gapSolver::getShiftNeighbors(gapProblem problem,int job){
+	//int solutionSize = problem.solutionList.size();
+	std::vector<gapProblem> shiftNeighbors;
+
+	//for (int job = 0; job < solutionSize; ++job) {
+		for(int agent = 0; agent < problem.numberOfAgents; ++agent){
+			if(problem.agentCanDoJob(job,agent)){
+			  gapProblem newProb(problem);
+			  newProb.shiftJobAgent(agent,job);
+			  shiftNeighbors.push_back(newProb);
+			}
+		}
+	//}
+
+	return shiftNeighbors;
+}
+
+std::vector<gapProblem> gapSolver::getSwapNeighbors(gapProblem problem, int job){
+	//int solutionSize = problem.solutionList.size();
+	std::vector<gapProblem> swapNeighbors;
+
+	//for (int job = 0; job < solutionSize; ++job) {
+		for (int swapJob = job + 1; swapJob < problem.numberOfJobs; ++swapJob) {
+			if(problem.canSwapJobAgents(job,swapJob)){
+				gapProblem newProb(problem);
+				newProb.swapJobAgents(job,swapJob);
+				swapNeighbors.push_back(newProb);
+			}
+		}
+	//}
+
+	return swapNeighbors;
+}
+
+std::vector<gapProblem> gapSolver::getNeighbors(gapProblem problem, int job) {
+
+	auto shiftNeighbors = getShiftNeighbors(problem,job);
+	auto swapNeighbors = getSwapNeighbors  (problem,job);
+
+	swapNeighbors.insert(swapNeighbors.end(),shiftNeighbors.begin(),shiftNeighbors.end());
+
+	return swapNeighbors;
+}
+
+gapProblem gapSolver::tabuSearch(gapProblem problem)
+{
+  int maximumTabuListLength = 50;
+  int iterationsWithoutNewBest = 0;
+  gapProblem best = getBestHeuristicSolution(problem); 
+  std::deque<gapProblem> linearTabuList;
+  linearTabuList.push_back(best);
+
+  while(iterationsWithoutNewBest <= 500){
+	for (int i = 0; i < problem.numberOfJobs; ++i) {
+		auto neighbors = getNeighbors(best,i);
+		if(neighbors.size() == 0){
+			continue;
+		}
+		auto maxElemIter = std::max_element(neighbors.begin(),neighbors.end(),
+				[](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
+
+		auto maxElem = *maxElemIter;
+		while(std::find(linearTabuList.begin(),linearTabuList.end(),maxElem) != linearTabuList.end()){
+
+			if(neighbors.size() == 0) continue; 
+
+			neighbors.erase(maxElemIter);
+			if(neighbors.size() == 0) continue; 
+			maxElemIter = std::max_element(neighbors.begin(),neighbors.end(),
+					[](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
+
+			maxElem = *maxElemIter;
+		}
+		if(maxElem.solutionValue >= best.solutionValue){
+			if(std::find(linearTabuList.begin(),linearTabuList.end(),maxElem) == linearTabuList.end()){
+				if(linearTabuList.size() >= 50){
+					linearTabuList.pop_front();
+				}
+
+				linearTabuList.push_back(best);
+			}
+			best = maxElem;
+			iterationsWithoutNewBest = 0;
+			std::cout << best << std::endl;
+		}
+		else {
+			iterationsWithoutNewBest++;
+		}
+	}
+
+  }
+  
+
+  std::cout << best;
+
+  return best;
+}
+
 gapProblem gapSolver::heuristicSolve(gapProblem problem)
 {
   Matrix JobCostPerAgent = problem.JobCostPerAgent;
@@ -201,7 +305,7 @@ gapProblem gapSolver::heuristicSolve(gapProblem problem)
       agentIndex = getMinimumResourceCostAgent(i, problem);
       break;
     default:
-      std::cerr << "No defined policy error" << std::endl;
+      std::cerr << "No defined heuristic policy error" << std::endl;
       exit(-1);
     }
     if (agentIndex != -1)
@@ -211,6 +315,14 @@ gapProblem gapSolver::heuristicSolve(gapProblem problem)
   }
 
   return problem;
+}
+
+gapProblem gapSolver::getBestHeuristicSolution(gapProblem problem){
+  this->heuristicPolicy = HeuristicPolicy::MAXCOST;
+  gapProblem maxres = heuristicSolve(problem);
+  this->heuristicPolicy = HeuristicPolicy::MINRES;
+  gapProblem minres = heuristicSolve(problem);
+  return maxres.solutionValue > minres.solutionValue ? maxres : minres;
 }
 
 void gapSolver::solveAll()
@@ -224,6 +336,8 @@ void gapSolver::solveAll()
 		  solveFunc =  &gapSolver::branchAndBound;
 	  case SolverPolicy::BT:
 		  solveFunc =  &gapSolver::backTracking;
+	  case SolverPolicy::TS:
+		  solveFunc =  &gapSolver::tabuSearch;
   }
 
   for (gapProblem problem : problemSet)
@@ -231,27 +345,6 @@ void gapSolver::solveAll()
     auto solution = solveFunc(*this,problem);
     //auto solution = (this->*solveFunc)(problem);
     validateListResult(solution,solution.solutionList);
-  }
-}
-
-void gapSolver::branchAndBoundSolveAll()
-{
-  for (gapProblem problem : problemSet)
-  {
-    //	auto solution = heuristicSolve(problem);
-    auto solution = branchAndBound(problem);
-    validateListResult(solution,solution.solutionList);
-  }
-}
-
-void gapSolver::backTrackingSolveAll()
-{
-  for (gapProblem problem : problemSet)
-  {
-    //	auto solution = heuristicSolve(problem);
-     backTracking(problem);
-    //auto solution = backTracking(problem);
-    //validateListResult(solution,solution.solutionList);
   }
 }
 

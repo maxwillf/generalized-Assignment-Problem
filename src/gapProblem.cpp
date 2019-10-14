@@ -24,3 +24,7 @@ std::ostream& operator<<(std::ostream& os,  gapProblem& problem){
 	os << "Bounding Value: " <<  problem.currentBoundingValue() << std::endl;
 	os << "Solution Value: " <<  problem.solutionValue << std::endl;
 }
+
+bool operator==(gapProblem a, gapProblem b){
+	a.solutionList == b. solutionList;
+}
