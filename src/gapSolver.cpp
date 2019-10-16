@@ -241,50 +241,46 @@ gapProblem gapSolver::tabuSearch(gapProblem problem)
   int maximumTabuListLength = 50;
   int iterationsWithoutNewBest = 0;
   gapProblem best = getBestHeuristicSolution(problem); 
+  gapProblem candidateBest = best;
   std::deque<gapProblem> linearTabuList;
   linearTabuList.push_back(best);
+  std::vector<gapProblem> neighbors;
 
-  while(iterationsWithoutNewBest <= 500){
-	for (int i = 0; i < problem.numberOfJobs; ++i) {
-		auto neighbors = getNeighbors(best,i);
-		if(neighbors.size() == 0){
-			continue;
-		}
-		auto maxElemIter = std::max_element(neighbors.begin(),neighbors.end(),
-				[](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
+  while(iterationsWithoutNewBest <= 5){
+	  gapProblem failSafeElem;
+	  for (int i = 0; i < problem.numberOfJobs; ++i) {
+		  neighbors = getNeighbors(candidateBest,i);
+          if(neighbors.size() != 0){
+		  neighbors.erase(std::remove_if
+				  (neighbors.begin(),
+				   neighbors.end(),
+				   [linearTabuList](gapProblem p)
+				   { return std::find(linearTabuList.begin(),linearTabuList.end(),p) != linearTabuList.end();}));
+          }
+          if (neighbors.size() == 0) {
+			  continue;
+		  }
+		  auto maxElemIter = std::max_element(neighbors.begin(),neighbors.end(),
+				  [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
 
-		auto maxElem = *maxElemIter;
-		while(std::find(linearTabuList.begin(),linearTabuList.end(),maxElem) != linearTabuList.end()){
+		  auto maxElem = *maxElemIter;
+		  failSafeElem = maxElem;
+          if(linearTabuList.size() >= 50){
+              linearTabuList.pop_front();
+          }
+          linearTabuList.push_back(maxElem);
 
-			if(neighbors.size() == 0) continue; 
-
-			neighbors.erase(maxElemIter);
-			if(neighbors.size() == 0) continue; 
-			maxElemIter = std::max_element(neighbors.begin(),neighbors.end(),
-					[](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
-
-			maxElem = *maxElemIter;
-		}
-		if(maxElem.solutionValue >= best.solutionValue){
-			if(std::find(linearTabuList.begin(),linearTabuList.end(),maxElem) == linearTabuList.end()){
-				if(linearTabuList.size() >= 50){
-					linearTabuList.pop_front();
-				}
-
-				linearTabuList.push_back(best);
-			}
-			best = maxElem;
-			iterationsWithoutNewBest = 0;
-			std::cout << best << std::endl;
-		}
-		else {
-			iterationsWithoutNewBest++;
-		}
-	}
-
+          if(maxElem.solutionValue >= best.solutionValue){
+              candidateBest = maxElem;
+              best = maxElem;
+              iterationsWithoutNewBest = 0;
+              std::cout << best << std::endl;
+              break;
+          }
+	  }
+	  candidateBest = failSafeElem;
+	  iterationsWithoutNewBest++;
   }
-  
-
   std::cout << best;
 
   return best;
