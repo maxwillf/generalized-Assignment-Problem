@@ -270,7 +270,7 @@ gapProblem gapSolver::tabuSearch(gapProblem problem)
           }
           linearTabuList.push_back(maxElem);
 
-          if(maxElem.solutionValue >= best.solutionValue){
+          if(maxElem.solutionValue > best.solutionValue){
               candidateBest = maxElem;
               best = maxElem;
               iterationsWithoutNewBest = 0;

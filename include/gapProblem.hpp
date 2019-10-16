@@ -61,7 +61,9 @@ public:
     {
       std::cerr << "Out Of Bounds "
                 << "Agent Index value:" << agent;
+      std::cerr << " Number of agents :" << numberOfAgents << std::endl;
       std::cerr << " Job Index value:" << job << std::endl;
+      std::cerr << " Number of jobs :" << numberOfJobs << std::endl;
       exit(-1);
     }
 
@@ -74,6 +76,28 @@ public:
     {
       NotAllocatedJobs.erase(it);
     }
+  }
+  
+  void unlinkAgentFromJob(int  job){
+    int agent = solutionList[job];
+    if (job < 0 || job >= numberOfJobs)
+    {
+      std::cerr << "Out Of Bounds ";
+      std::cerr << " Job Index value:" << job << std::endl;
+      exit(-1);
+    }
+    
+    if(agent == -1){
+      std::cerr << "Can't remove agent from unnalocated job ";
+      std::cerr << " Job Index value:" << job << std::endl;
+      exit(-1);
+    }
+	
+    this->solutionValue -= JobCostPerAgent[agent][job];
+    this->allocatedResources -= ResourceConsumedPerJob[agent][job];
+    CurrentResourcePerAgent[agent] -= ResourceConsumedPerJob[agent][job];
+    solutionList[job] = -1;
+    NotAllocatedJobs.push_back(job);
   }
 
   bool agentCanDoJob(int agent, int job)
@@ -96,19 +120,15 @@ public:
 
 	int oldAgent = solutionList[job];
 
-	if(oldAgent == -1){
-		linkAgentToJob(agent,job);
+	if(oldAgent != -1){
+                unlinkAgentFromJob(job);
 	}
 
-	else {
-		this->solutionValue -= JobCostPerAgent[oldAgent][job];
-		this->solutionValue += JobCostPerAgent[agent][job];
-		this->allocatedResources -= ResourceConsumedPerJob[oldAgent][job];
-		this->allocatedResources += ResourceConsumedPerJob[agent][job];
-		CurrentResourcePerAgent[agent] -= ResourceConsumedPerJob[oldAgent][job];
-		CurrentResourcePerAgent[agent] += ResourceConsumedPerJob[agent][job];
-		solutionList[job] = agent;
-	}	
+	linkAgentToJob(agent,job);
+
+        if(agent > numberOfAgents){
+		std::cerr << "shift quebrado" << std::endl;
+	}
   }
  
 
@@ -143,25 +163,17 @@ public:
       exit(-1);
     }
 
-	int firstAgent = solutionList[firstJob];
+    int firstAgent = solutionList[firstJob];
     int secondAgent = solutionList[secondJob];
+    if(firstAgent > numberOfAgents || secondAgent > numberOfAgents){
+    	std::cerr << "swap quebrado" << std::endl;
+    }
+	
+    unlinkAgentFromJob(firstJob);
+    unlinkAgentFromJob(secondJob);
 
-    this->solutionValue -= JobCostPerAgent[firstAgent][firstJob];
-    this->solutionValue += JobCostPerAgent[firstAgent][secondJob];
-    this->solutionValue -= JobCostPerAgent[secondAgent][secondJob];
-    this->solutionValue += JobCostPerAgent[secondAgent][firstJob];
-
-    this->allocatedResources -= ResourceConsumedPerJob[firstAgent][firstJob];
-    this->allocatedResources += ResourceConsumedPerJob[firstAgent][secondJob];
-    this->allocatedResources -= ResourceConsumedPerJob[secondAgent][secondJob];
-    this->allocatedResources += ResourceConsumedPerJob[secondAgent][firstJob];
-
-    CurrentResourcePerAgent[firstAgent] -= ResourceConsumedPerJob[firstAgent][firstJob];
-    CurrentResourcePerAgent[firstAgent] += ResourceConsumedPerJob[firstAgent][secondJob];
-    CurrentResourcePerAgent[secondAgent] -= ResourceConsumedPerJob[secondAgent][secondJob];
-    CurrentResourcePerAgent[secondAgent] += ResourceConsumedPerJob[secondAgent][firstJob];
-    solutionList[firstJob] = secondAgent;
-    solutionList[secondJob] = firstAgent;
+    linkAgentToJob(firstJob,secondJob);
+    linkAgentToJob(secondJob,firstJob);
   }
 
   int currentBoundingValue()
