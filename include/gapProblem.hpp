@@ -60,10 +60,10 @@ public:
     if (agent > numberOfAgents || job > numberOfJobs)
     {
       std::cerr << "Out Of Bounds "
-                << "Agent Index value:" << agent;
-      std::cerr << " Number of agents :" << numberOfAgents << std::endl;
-      std::cerr << " Job Index value:" << job << std::endl;
-      std::cerr << " Number of jobs :" << numberOfJobs << std::endl;
+                << "Agent Index value:" << agent << std::endl;
+      std::cerr << "Number of agents :" << numberOfAgents << std::endl;
+      std::cerr << "Job Index value:" << job << std::endl;
+      std::cerr << "Number of jobs :" << numberOfJobs << std::endl;
       exit(-1);
     }
 
@@ -77,8 +77,9 @@ public:
       NotAllocatedJobs.erase(it);
     }
   }
-  
-  void unlinkAgentFromJob(int  job){
+
+  void unlinkAgentFromJob(int job)
+  {
     int agent = solutionList[job];
     if (job < 0 || job >= numberOfJobs)
     {
@@ -86,13 +87,14 @@ public:
       std::cerr << " Job Index value:" << job << std::endl;
       exit(-1);
     }
-    
-    if(agent == -1){
+
+    if (agent == -1)
+    {
       std::cerr << "Can't remove agent from unnalocated job ";
       std::cerr << " Job Index value:" << job << std::endl;
       exit(-1);
     }
-	
+
     this->solutionValue -= JobCostPerAgent[agent][job];
     this->allocatedResources -= ResourceConsumedPerJob[agent][job];
     CurrentResourcePerAgent[agent] -= ResourceConsumedPerJob[agent][job];
@@ -102,15 +104,16 @@ public:
 
   bool agentCanDoJob(int agent, int job)
   {
-    if(agent < 0 || agent >= numberOfAgents || job < 0 || job >= numberOfJobs) return false;
+    if (agent < 0 || agent >= numberOfAgents || job < 0 || job >= numberOfJobs)
+      return false;
 
     int agentResource = ResourceConsumedPerJob[agent][job] + CurrentResourcePerAgent[agent];
     return MaximumResourcePerAgent[agent] >= agentResource;
   }
-  
+
   void shiftJobAgent(int agent, int job)
   {
-    if(agent < 0 || agent >= numberOfAgents || job < 0 || job >= numberOfJobs)
+    if (agent < 0 || agent >= numberOfAgents || job < 0 || job >= numberOfJobs)
     {
       std::cerr << "Out Of Bounds "
                 << "Agent Index value:" << agent;
@@ -118,44 +121,33 @@ public:
       exit(-1);
     }
 
-	int oldAgent = solutionList[job];
+    int oldAgent = solutionList[job];
 
-	if(oldAgent != -1){
-                unlinkAgentFromJob(job);
-	}
+    if (oldAgent != -1)
+    {
+      unlinkAgentFromJob(job);
+    }
+    linkAgentToJob(agent, job);
 
-	linkAgentToJob(agent,job);
-
-        if(agent > numberOfAgents){
-		std::cerr << "shift quebrado" << std::endl;
-	}
   }
- 
 
-  bool canSwapJobAgents(int firstJob, int secondJob){
+  bool canSwapJobAgents(int firstJob, int secondJob)
+  {
     int firstJobAgent = solutionList[firstJob];
     int secondJobAgent = solutionList[secondJob];
-	if(firstJobAgent == -1 or secondJobAgent == -1) return false;
-    if(firstJob < 0 || firstJob >= numberOfJobs || secondJob < 0 || secondJob >= numberOfJobs){
-      std::cerr << "Out Of Bounds Job" << std::endl;
-      std::cerr << "First Job: " << firstJob << std::endl;
-      std::cerr << "Second Job: " << secondJob << std::endl;
-      exit(-1);
-    }
+    if (firstJobAgent == -1 || secondJobAgent == -1)
+      return false;
+    gapProblem copy = *this;
+    copy.unlinkAgentFromJob(firstJob);
+    copy.unlinkAgentFromJob(secondJob);
 
-    int firstAgentResource = CurrentResourcePerAgent[firstJobAgent] - ResourceConsumedPerJob[firstJobAgent][firstJob];
-    int secondAgentResource = CurrentResourcePerAgent[secondJobAgent] - ResourceConsumedPerJob[secondJobAgent][secondJob];
-
-    if(firstAgentResource + ResourceConsumedPerJob[firstJobAgent][secondJob] <= MaximumResourcePerAgent[firstJobAgent] &&
-       secondAgentResource + ResourceConsumedPerJob[secondJobAgent][firstJob] <= MaximumResourcePerAgent[secondJobAgent]) 
-       return true;
-
-    else return false;
+    return copy.agentCanDoJob(firstJobAgent, secondJob) && 
+           copy.agentCanDoJob(secondJobAgent, firstJob);
   }
 
   void swapJobAgents(int firstJob, int secondJob)
   {
-    if(firstJob < 0 || firstJob >= numberOfJobs || secondJob < 0 || secondJob >= numberOfJobs)
+    if (firstJob < 0 || firstJob >= numberOfJobs || secondJob < 0 || secondJob >= numberOfJobs)
     {
       std::cerr << "Out Of Bounds Job" << std::endl;
       std::cerr << "First Job: " << firstJob << std::endl;
@@ -165,15 +157,16 @@ public:
 
     int firstAgent = solutionList[firstJob];
     int secondAgent = solutionList[secondJob];
-    if(firstAgent > numberOfAgents || secondAgent > numberOfAgents){
-    	std::cerr << "swap quebrado" << std::endl;
+    if (firstAgent > numberOfAgents || secondAgent > numberOfAgents)
+    {
+      std::cerr << "swap quebrado" << std::endl;
     }
-	
+
     unlinkAgentFromJob(firstJob);
     unlinkAgentFromJob(secondJob);
 
-    linkAgentToJob(firstJob,secondJob);
-    linkAgentToJob(secondJob,firstJob);
+    linkAgentToJob(firstAgent, secondJob);
+    linkAgentToJob(secondAgent, firstJob);
   }
 
   int currentBoundingValue()
@@ -196,16 +189,17 @@ public:
           }
         }
         auto maxElem = std::max_element(bounds.begin(), bounds.end());
-	if(*maxElem > 0){
-		int agentIndex = maxElem - bounds.begin();
-		boundValue += JobCostPerAgent[agentIndex][job];
-	}
+        if (*maxElem > 0)
+        {
+          int agentIndex = maxElem - bounds.begin();
+          boundValue += JobCostPerAgent[agentIndex][job];
+        }
       }
     }
     return boundValue;
   }
 };
 
-std::ostream &operator<<(std::ostream &os, gapProblem& problem);
+std::ostream &operator<<(std::ostream &os, gapProblem &problem);
 bool operator==(gapProblem a, gapProblem b);
 #endif

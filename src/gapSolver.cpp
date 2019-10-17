@@ -198,8 +198,9 @@ std::vector<gapProblem> gapSolver::getShiftNeighbors(gapProblem problem,int job)
 
 	//for (int job = 0; job < solutionSize; ++job) {
 		for(int agent = 0; agent < problem.numberOfAgents; ++agent){
-			if(problem.agentCanDoJob(job,agent)){
+			if(problem.agentCanDoJob(agent,job)){
 			  gapProblem newProb(problem);
+        newProb.unlinkAgentFromJob(job);
 			  newProb.shiftJobAgent(agent,job);
 			  shiftNeighbors.push_back(newProb);
 			}
@@ -229,11 +230,11 @@ std::vector<gapProblem> gapSolver::getSwapNeighbors(gapProblem problem, int job)
 std::vector<gapProblem> gapSolver::getNeighbors(gapProblem problem, int job) {
 
 	auto shiftNeighbors = getShiftNeighbors(problem,job);
-	auto swapNeighbors = getSwapNeighbors  (problem,job);
+	//auto swapNeighbors = getSwapNeighbors  (problem,job);
 
-	swapNeighbors.insert(swapNeighbors.end(),shiftNeighbors.begin(),shiftNeighbors.end());
-
-	return swapNeighbors;
+	//swapNeighbors.insert(swapNeighbors.end(),shiftNeighbors.begin(),shiftNeighbors.end());
+  return shiftNeighbors;
+	//return swapNeighbors;
 }
 
 gapProblem gapSolver::tabuSearch(gapProblem problem)
@@ -262,9 +263,12 @@ gapProblem gapSolver::tabuSearch(gapProblem problem)
 		  }
 		  auto maxElemIter = std::max_element(neighbors.begin(),neighbors.end(),
 				  [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
-
-		  auto maxElem = *maxElemIter;
-		  failSafeElem = maxElem;
+      
+      gapProblem maxElem;
+      if(maxElemIter != neighbors.end()){
+        maxElem = *maxElemIter;
+        failSafeElem = maxElem;
+      }
           if(linearTabuList.size() >= 50){
               linearTabuList.pop_front();
           }
@@ -274,7 +278,7 @@ gapProblem gapSolver::tabuSearch(gapProblem problem)
               candidateBest = maxElem;
               best = maxElem;
               iterationsWithoutNewBest = 0;
-              std::cout << best << std::endl;
+              //std::cout << best << std::endl;
               break;
           }
 	  }
@@ -406,6 +410,7 @@ std::vector<gapProblem> gapSolver::getCandidateSolutions(gapProblem problem)
     int solutionSize = solution.size();
     problem.CurrentResourcePerAgent.assign(problem.numberOfAgents,0);
     problem.solutionValue = 0;
+    problem.solutionList.assign(solutionSize,-1);
 
     for (size_t i = 0; i < solutionSize ; i++)
     {
