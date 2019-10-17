@@ -282,7 +282,7 @@ gapProblem gapSolver::tabuSearch(gapProblem problem)
               break;
           }
 	  }
-	  candidateBest = failSafeElem;
+	  //candidateBest = failSafeElem;
 	  iterationsWithoutNewBest++;
   }
   std::cout << best;
