@@ -237,30 +237,55 @@ std::vector<gapProblem> gapSolver::getNeighbors(gapProblem problem, int job) {
 	//return swapNeighbors;
 }
 
+//gapProblem gapSolver::getFailSafeElem(gapProblem problem)
+//{
+//  std::vector<int> maximumCostValuePerJob;
+//
+//  for (size_t i = 0; i < problem.numberOfJobs; i++)
+//  {
+//    std::vector<int> auxiliaryColumnVector;
+//    for (size_t j = 0; j < problem.numberOfAgents; j++)
+//    {
+//      auxiliaryColumnVector.push_back(problem.JobCostPerAgent[j][i]);
+//    }
+//    maximumCostValuePerJob.push_back(
+//      *std::max_element(
+//        auxiliaryColumnVector.begin(),
+//        auxiliaryColumnVector.end()));
+//  }
+//
+//  while(maximumCostValuePerJob.size() != 0 ){
+//    auto candidate = 
+//      *std::max_element(
+//        auxiliaryColumnVector.begin(),
+//        auxiliaryColumnVector.end()));
+//  }
+//
+//  return problem;
+//}
+
 gapProblem gapSolver::tabuSearch(gapProblem problem)
 {
+
   int maximumTabuListLength = 50;
   int iterationsWithoutNewBest = 0;
   gapProblem best = getBestHeuristicSolution(problem); 
   gapProblem candidateBest = best;
-  std::deque<gapProblem> linearTabuList;
-  linearTabuList.push_back(best);
+  std::deque<int> linearTabuList;
+  //linearTabuList.push_back(best);
   std::vector<gapProblem> neighbors;
 
-  while(iterationsWithoutNewBest <= 5){
+  while(iterationsWithoutNewBest <= 50){
 	  gapProblem failSafeElem;
-	  for (int i = 0; i < problem.numberOfJobs; ++i) {
-		  neighbors = getNeighbors(candidateBest,i);
-          if(neighbors.size() != 0){
-		  neighbors.erase(std::remove_if
-				  (neighbors.begin(),
-				   neighbors.end(),
-				   [linearTabuList](gapProblem p)
-				   { return std::find(linearTabuList.begin(),linearTabuList.end(),p) != linearTabuList.end();}));
-          }
+	  for (int job = 0; job < problem.numberOfJobs; ++job) {
+      if(std::find(linearTabuList.begin(),linearTabuList.end(),job) != linearTabuList.end()){
+        continue;
+      }
+		  neighbors = getNeighbors(candidateBest,job);
           if (neighbors.size() == 0) {
 			  continue;
 		  }
+
 		  auto maxElemIter = std::max_element(neighbors.begin(),neighbors.end(),
 				  [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
       
@@ -269,10 +294,11 @@ gapProblem gapSolver::tabuSearch(gapProblem problem)
         maxElem = *maxElemIter;
         failSafeElem = maxElem;
       }
-          if(linearTabuList.size() >= 50){
+          if(linearTabuList.size() >= 5){
               linearTabuList.pop_front();
           }
-          linearTabuList.push_back(maxElem);
+          linearTabuList.push_back(job);
+          //linearTabuList.push_back(maxElem);
 
           if(maxElem.solutionValue > best.solutionValue){
               candidateBest = maxElem;
