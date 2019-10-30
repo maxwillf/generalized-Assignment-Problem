@@ -200,7 +200,9 @@ std::vector<gapProblem> gapSolver::getShiftNeighbors(gapProblem problem,int job)
 		for(int agent = 0; agent < problem.numberOfAgents; ++agent){
 			if(problem.agentCanDoJob(agent,job)){
 			  gapProblem newProb(problem);
-        newProb.unlinkAgentFromJob(job);
+				if(problem.solutionList[job] != -1){
+						newProb.unlinkAgentFromJob(job);
+				}
 			  newProb.shiftJobAgent(agent,job);
 			  shiftNeighbors.push_back(newProb);
 			}
