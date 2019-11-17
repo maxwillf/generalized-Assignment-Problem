@@ -202,4 +202,5 @@ public:
 
 std::ostream &operator<<(std::ostream &os, gapProblem &problem);
 bool operator==(gapProblem a, gapProblem b);
+bool operator<(gapProblem a, gapProblem b);
 #endif

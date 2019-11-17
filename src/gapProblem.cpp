@@ -28,3 +28,7 @@ std::ostream& operator<<(std::ostream& os,  gapProblem& problem){
 bool operator==(gapProblem a, gapProblem b){
 	a.solutionList == b. solutionList;
 }
+
+bool operator<(gapProblem a, gapProblem b){
+	a.solutionList < b. solutionList;
+}

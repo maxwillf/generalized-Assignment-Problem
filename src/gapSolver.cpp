@@ -80,23 +80,12 @@ SolverPolicy gapSolver::stringToPolicy(std::string policyStr)
     return SolverPolicy::BT;
   if (policyStr == "TS")
     return SolverPolicy::TS;
+  if (policyStr == "BA")
+    return SolverPolicy::BA;
 
   std::cerr << "Invalid policy, expected HEURISTIC,BNB, or BT and got something else" << std::endl;
   exit(-1);
 }
-/*
-HeuristicPolicy gapSolver::stringToPolicy(std::string policyStr)
-{
-  std::transform(policyStr.begin(), policyStr.end(), policyStr.begin(),
-                 [](unsigned char c) { return std::toupper(c); });
-  if (policyStr == "MAXCOST")
-    return HeuristicPolicy::MAXCOST;
-  if (policyStr == "MINRES")
-    return HeuristicPolicy::MINRES;
-
-  std::cerr << "Invalid policy, expected MAXCOST OR MINRES and got something else" << std::endl;
-  exit(-1);
-}*/
 
 gapProblem gapSolver::backTracking(gapProblem problem)
 {
@@ -238,6 +227,21 @@ std::vector<gapProblem> gapSolver::getNeighbors(gapProblem problem, int job) {
 	return swapNeighbors;
 }
 
+std::vector<gapProblem> gapSolver::getAllNeighbors(gapProblem problem) {
+
+  std::vector<gapProblem> neighbors;
+  for (size_t i = 0; i < problem.numberOfJobs; i++)
+  {
+    auto shiftNeighbors = getShiftNeighbors(problem,i);
+    auto swapNeighbors = getSwapNeighbors  (problem,i);
+    neighbors.insert(neighbors.end(),shiftNeighbors.begin(), shiftNeighbors.end());
+    neighbors.insert(neighbors.end(),swapNeighbors.begin(), swapNeighbors.end());
+    /* code */
+  }
+  
+	return neighbors;
+}
+
 gapProblem gapSolver::tabuSearch(gapProblem problem)
 {
 
@@ -256,9 +260,6 @@ gapProblem gapSolver::tabuSearch(gapProblem problem)
 		  if (neighbors.empty()) {
 			  continue;
 		  }
-		  
-			//auto maxElemIter = std::max_element(neighbors.begin(),neighbors.end(),
-		  //  [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
 			std::vector<gapProblem> augmentingCandidates;
 			std::copy_if(neighbors.begin(),neighbors.end(),std::back_inserter(augmentingCandidates),
 							[best](gapProblem p){return p.solutionValue > best.solutionValue; });
@@ -268,9 +269,6 @@ gapProblem gapSolver::tabuSearch(gapProblem problem)
 					  [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
 					auto maxElem = *maxElemIter;
 					augmentingCandidates.erase(maxElemIter);
-					//std::cout << "AugmentingCandidates Size: " << augmentingCandidates.size() << std::endl;
-					//std::cout << "new best" << maxElem;
-					//std::cout << "current best" << best;
 					// keep other possible solutions in longTermMemory in order to escape local
 					// minima
 					if(!augmentingCandidates.empty()){
@@ -306,8 +304,86 @@ gapProblem gapSolver::tabuSearch(gapProblem problem)
 				longTermMemory.erase(maxElemIter);
 		}
   }
-  std::cout << best;
+ // std::cout << best;
   return best;
+}
+
+gapProblem gapSolver::randomEjectChain(gapProblem problem, int chainLength)
+{
+  auto prob = problem;
+  for (size_t i = 0; i < chainLength ; i++)
+  {
+    int job = rand() % problem.numberOfJobs;
+    auto neighbors = getNeighbors(prob,job);
+
+    if(!neighbors.empty()){
+      if(i+1 == chainLength ) {
+        return *std::max_element(neighbors.begin(),neighbors.end(),
+        [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
+      }
+      prob = neighbors[rand() % neighbors.size()];
+    }
+  }
+  return prob;
+}
+
+gapProblem gapSolver::beesAlgorithm(gapProblem problem)
+{
+  int numberOfBestBees = 15; 
+  gapProblem currrentSolution = getBestHeuristicSolution(problem);
+  std::vector<gapProblem> neighbors; 
+  for (size_t i = 0; i < numberOfBestBees; i++)
+
+  {
+    neighbors.insert(neighbors.end(),randomEjectChain(currrentSolution, rand() % problem.numberOfJobs));
+  }
+
+  int iteration = 0;
+  int numberOfIterationsWithoutUpdatesBeforeRandomization = 50;
+  int currentRandomizerIteration = 0;
+  int maxRandomizerIterations = 3;
+  int chainLength = 5;
+
+  while(currentRandomizerIteration < maxRandomizerIterations){
+    std::sort(neighbors.begin(),neighbors.end(), [](gapProblem a, gapProblem b){ return a.solutionValue > b.solutionValue; });
+    for (auto && bee : neighbors)
+    {
+      auto currentBeeNeighbors = getAllNeighbors(bee);
+      // should be number of onlookers
+      for (size_t i = 0; i < numberOfBestBees; i++)
+      {
+        currentBeeNeighbors.insert(currentBeeNeighbors.end(), randomEjectChain(bee,numberOfBestBees));
+      }
+      
+      auto max = *std::max_element(currentBeeNeighbors.begin(),currentBeeNeighbors.end(),
+      [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue;});
+      if(bee < max){
+        bee = max;
+      }
+    }
+    auto possibleSolution = *std::max_element(neighbors.begin(),neighbors.end());
+    if(currrentSolution.solutionValue < possibleSolution.solutionValue){
+      currrentSolution = possibleSolution;
+      iteration = 0;
+    }
+    if(iteration == numberOfIterationsWithoutUpdatesBeforeRandomization){
+      auto minElem = std::min_element(neighbors.begin(),neighbors.end(),
+      [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue;});
+      *minElem = randomEjectChain(*minElem,chainLength);
+      currentRandomizerIteration++;
+      iteration = 0;
+    }
+    else {
+      iteration++;
+    }
+  } 
+  //std::cout << solution;
+  return currrentSolution;
+  //randomEjectChain(initialGuess, 5);
+  
+					//auto maxElemIter = std::max_element(augmentingCandidates.begin(),augmentingCandidates.end(),
+					//  [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
+  
 }
 
 gapProblem gapSolver::heuristicSolve(gapProblem problem)
@@ -351,19 +427,27 @@ void gapSolver::solveAll()
 	std::function<gapProblem(gapSolver&,gapProblem)> solveFunc;
 	switch(solverPolicy){
 	  case SolverPolicy::HEURISTIC:
-		  solveFunc =  &gapSolver::heuristicSolve;
+		  solveFunc =  &gapSolver::getBestHeuristicSolution;
+      break;
 	  case SolverPolicy::BNB:
 		  solveFunc =  &gapSolver::branchAndBound;
+      break;
 	  case SolverPolicy::BT:
 		  solveFunc =  &gapSolver::backTracking;
+      break;
 	  case SolverPolicy::TS:
 		  solveFunc =  &gapSolver::tabuSearch;
+      break;
+	  case SolverPolicy::BA:
+		  solveFunc =  &gapSolver::beesAlgorithm;
+      break;
   }
 
   for (gapProblem problem : problemSet)
   {
     auto solution = solveFunc(*this,problem);
     //auto solution = (this->*solveFunc)(problem);
+    std::cout << solution;
     validateListResult(solution,solution.solutionList);
   }
 }

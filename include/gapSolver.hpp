@@ -13,7 +13,7 @@
 #define INF ((unsigned) ~0)
 
 enum class HeuristicPolicy {MAXCOST,MINRES};
-enum class SolverPolicy {HEURISTIC,BNB,BT,TS};
+enum class SolverPolicy {HEURISTIC,BNB,BT,TS,BA};
 
 class gapSolver
 {
@@ -28,6 +28,7 @@ private:
   std::vector<gapProblem> getShiftNeighbors(gapProblem problem, int job);
   std::vector<gapProblem> getSwapNeighbors (gapProblem problem, int job);
   std::vector<gapProblem> getNeighbors     (gapProblem problem, int job);
+  std::vector<gapProblem> getAllNeighbors  (gapProblem problem);
   void heuristicSolveAll(); 
   void backTrackingSolveAll();
   void branchAndBoundSolveAll();
@@ -41,6 +42,8 @@ private:
   gapProblem branchAndBound(gapProblem problem);
   gapProblem backTracking(gapProblem problem);
   gapProblem tabuSearch(gapProblem problem);
+  gapProblem beesAlgorithm(gapProblem problem);
+  gapProblem randomEjectChain(gapProblem problem, int chainLength);
 
 public:
   void readProblemSetFile(std::string path);
