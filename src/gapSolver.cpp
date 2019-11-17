@@ -356,7 +356,7 @@ gapProblem gapSolver::beesAlgorithm(gapProblem problem)
     std::sort(neighbors.begin(),neighbors.end(), [](gapProblem a, gapProblem b){ return a.solutionValue > b.solutionValue; });
     for (auto && bee : neighbors)
     {
-      auto currentBeeNeighbors = getAllNeighbors(bee);
+      //auto currentBeeNeighbors = getAllNeighbors(bee);
       // should be number of onlookers
       for (size_t i = 0; i < numberOfBestBees; i++)
       {
