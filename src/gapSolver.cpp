@@ -316,51 +316,59 @@ gapProblem gapSolver::tabuSearch(gapProblem problem)
 gapProblem gapSolver::randomEjectChain(gapProblem problem, int chainLength)
 {
   auto prob = problem;
-  for (size_t i = 0; i < chainLength ; i++)
+  std::vector<gapProblem> neighbors;
+  for (size_t i = 0; i < chainLength  ; i++)
   {
     int job = rand() % problem.numberOfJobs;
-    auto neighbors = getNeighbors(prob,job);
+    neighbors = getShiftNeighbors(prob,job);
 
     if(!neighbors.empty()){
-      //if(i+1 == chainLength ) {
-      //  return *std::max_element(neighbors.begin(),neighbors.end(),
-      //  [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
-      //}
       prob = neighbors[rand() % neighbors.size()];
-      //prob = *std::max_element(neighbors.begin(),neighbors.end(),
-      //  [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
 
     }
   }
+  //neighbors = getShiftNeighbors(prob,rand() % problem.numberOfJobs);
+  //if(!neighbors.empty()){
+  //    prob = *std::max_element(neighbors.begin(),neighbors.end(),
+  //      [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
+  //}
   return prob;
 }
 
 gapProblem gapSolver::beesAlgorithm(gapProblem problem)
 {
-  int numberOfBestBees = 5; 
-  gapProblem currrentSolution = getBestHeuristicSolution(problem);
-  std::vector<gapProblem> neighbors; 
-  for (size_t i = 0; i < numberOfBestBees; i++)
-
-  {
-    neighbors.insert(neighbors.end(),randomEjectChain(currrentSolution, rand() % problem.numberOfJobs));
-  }
-
+  //std::cout << "Insert"
+  srand(time(NULL));
+  int numberOfScoutBees = 100;
+  int numberOfBestBees = 30;
+  int numberOfEmployeedBeesForEachBestBee = 3;
+ // int numberOfEmployeedBeesForNonBestBee = 1;
   int iteration = 0;
   int numberOfIterationsWithoutUpdatesBeforeRandomization = 50;
   int currentRandomizerIteration = 0;
   int maxRandomizerIterations = 3;
-  int chainLength = 5;
+  int chainLength = 20;
+
+  gapProblem currrentSolution = getBestHeuristicSolution(problem);
+  std::vector<gapProblem> neighbors; 
+  for (size_t i = 0; i < numberOfScoutBees; i++)
+
+  {
+    neighbors.insert(neighbors.end(),randomEjectChain(currrentSolution, chainLength));
+  }
+  std::sort(neighbors.begin(),neighbors.end(), [](gapProblem a, gapProblem b){ return a.solutionValue > b.solutionValue; });
+  neighbors.resize(numberOfBestBees);
+  neighbors.shrink_to_fit(); 
+
 
   while(currentRandomizerIteration < maxRandomizerIterations){
-    std::sort(neighbors.begin(),neighbors.end(), [](gapProblem a, gapProblem b){ return a.solutionValue > b.solutionValue; });
     for (auto && bee : neighbors)
     {
       auto currentBeeNeighbors = getAllNeighbors(bee);
       // should be number of onlookers
-      for (size_t i = 0; i < numberOfBestBees; i++)
+      for (size_t i = 0; i < numberOfEmployeedBeesForEachBestBee; i++)
       {
-        currentBeeNeighbors.insert(currentBeeNeighbors.end(), randomEjectChain(bee,numberOfBestBees));
+        currentBeeNeighbors.insert(currentBeeNeighbors.end(), randomEjectChain(bee,chainLength));
       }
       
       auto max = *std::max_element(currentBeeNeighbors.begin(),currentBeeNeighbors.end(),
@@ -375,18 +383,16 @@ gapProblem gapSolver::beesAlgorithm(gapProblem problem)
       iteration = 0;
     }
     if(iteration == numberOfIterationsWithoutUpdatesBeforeRandomization){
-      //auto minElem = std::min_element(neighbors.begin(),neighbors.end(),
-      //[](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue;});
+      std::sort(neighbors.begin(),neighbors.end(), [](gapProblem a, gapProblem b){ return a.solutionValue > b.solutionValue; });
 
-      for (size_t i = 0; i < neighbors.size() / 2; i++)
+      std::vector<gapProblem> newBees;
+      for (size_t i = 0; i < neighbors.size() / 4; i++)
       {
         auto minElem = neighbors.back();
         neighbors.pop_back();
-        neighbors.push_back(tabuSearch(randomEjectChain(minElem,chainLength)));
+        newBees.push_back(tabuSearch(randomEjectChain(minElem,chainLength)));
       }
-      
-      //*minElem = randomEjectChain(*minElem,chainLength);
-      //*minElem = tabuSearch(randomEjectChain(*minElem,chainLength));
+      neighbors.insert(neighbors.end(),newBees.begin(),newBees.end()); 
       currentRandomizerIteration++;
       iteration = 0;
     }
