@@ -244,10 +244,15 @@ std::vector<gapProblem> gapSolver::getAllNeighbors(gapProblem problem) {
 
 gapProblem gapSolver::tabuSearch(gapProblem problem)
 {
-
   int maximumTabuListLength = 50;
   int iterationsWithoutNewBest = 0;
   gapProblem best = getBestHeuristicSolution(problem); 
+  auto solutionList = problem.solutionList;
+  if(std::any_of(solutionList.begin(),solutionList.end(),[solutionList](int x){
+    return x != -1;
+  })){
+    best = problem;
+  }
   gapProblem candidateBest = best;
   std::deque<gapProblem> linearTabuList;
   linearTabuList.push_back(best);
@@ -317,11 +322,14 @@ gapProblem gapSolver::randomEjectChain(gapProblem problem, int chainLength)
     auto neighbors = getNeighbors(prob,job);
 
     if(!neighbors.empty()){
-      if(i+1 == chainLength ) {
-        return *std::max_element(neighbors.begin(),neighbors.end(),
-        [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
-      }
+      //if(i+1 == chainLength ) {
+      //  return *std::max_element(neighbors.begin(),neighbors.end(),
+      //  [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
+      //}
       prob = neighbors[rand() % neighbors.size()];
+      //prob = *std::max_element(neighbors.begin(),neighbors.end(),
+      //  [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
+
     }
   }
   return prob;
@@ -329,7 +337,7 @@ gapProblem gapSolver::randomEjectChain(gapProblem problem, int chainLength)
 
 gapProblem gapSolver::beesAlgorithm(gapProblem problem)
 {
-  int numberOfBestBees = 15; 
+  int numberOfBestBees = 5; 
   gapProblem currrentSolution = getBestHeuristicSolution(problem);
   std::vector<gapProblem> neighbors; 
   for (size_t i = 0; i < numberOfBestBees; i++)
@@ -367,9 +375,18 @@ gapProblem gapSolver::beesAlgorithm(gapProblem problem)
       iteration = 0;
     }
     if(iteration == numberOfIterationsWithoutUpdatesBeforeRandomization){
-      auto minElem = std::min_element(neighbors.begin(),neighbors.end(),
-      [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue;});
-      *minElem = randomEjectChain(*minElem,chainLength);
+      //auto minElem = std::min_element(neighbors.begin(),neighbors.end(),
+      //[](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue;});
+
+      for (size_t i = 0; i < neighbors.size() / 2; i++)
+      {
+        auto minElem = neighbors.back();
+        neighbors.pop_back();
+        neighbors.push_back(tabuSearch(randomEjectChain(minElem,chainLength)));
+      }
+      
+      //*minElem = randomEjectChain(*minElem,chainLength);
+      //*minElem = tabuSearch(randomEjectChain(*minElem,chainLength));
       currentRandomizerIteration++;
       iteration = 0;
     }
