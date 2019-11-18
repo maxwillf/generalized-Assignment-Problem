@@ -1,5 +1,6 @@
 #include "gapSolver.hpp"
 #include <functional>
+#include <chrono>
 void gapSolver::readProblemSetFile(std::string path)
 {
   std::fstream fs(path);
@@ -71,7 +72,7 @@ SolverPolicy gapSolver::stringToPolicy(std::string policyStr)
   std::transform(policyStr.begin(), policyStr.end(), policyStr.begin(),
                  [](unsigned char c) { return std::toupper(c); });
 
-  std::cout << policyStr << std::endl;
+  //std::cout << policyStr << std::endl;
   if (policyStr == "HEURISTIC")
     return SolverPolicy::HEURISTIC;
   if (policyStr == "BNB")
@@ -470,7 +471,6 @@ gapProblem gapSolver::getBestHeuristicSolution(gapProblem problem){
 
 void gapSolver::solveAll()
 {
-//  gapProblem (gapSolver::* solveFunc)(gapProblem);
 	std::function<gapProblem(gapSolver&,gapProblem)> solveFunc;
 	switch(solverPolicy){
 	  case SolverPolicy::HEURISTIC:
@@ -492,7 +492,12 @@ void gapSolver::solveAll()
 
   for (gapProblem problem : problemSet)
   {
+    using namespace std::chrono;
+    auto t1 = high_resolution_clock::now();
     auto solution = solveFunc(*this,problem);
+    auto t2 = high_resolution_clock::now();
+    auto time_span = duration_cast<duration<double>>(t2-t1);
+    std::cout << "Resultado conseguido em " << time_span.count() << " Segundos" << std::endl;
     //auto solution = (this->*solveFunc)(problem);
     std::cout << solution;
     validateListResult(solution,solution.solutionList);
