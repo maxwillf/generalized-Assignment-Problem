@@ -187,7 +187,17 @@ std::vector<gapProblem> gapSolver::getShiftNeighbors(gapProblem problem,int job)
 
 	//for (int job = 0; job < solutionSize; ++job) {
 		for(int agent = 0; agent < problem.numberOfAgents; ++agent){
-			if(problem.agentCanDoJob(agent,job)){
+      // allow infeasiblity
+      if(solverPolicy == SolverPolicy::TS){
+			  gapProblem newProb(problem);
+				if(problem.solutionList[job] != -1){
+						newProb.unlinkAgentFromJob(job);
+				}
+			  newProb.shiftJobAgent(agent,job);
+			  shiftNeighbors.push_back(newProb);
+			}
+      
+			else if(problem.agentCanDoJob(agent,job)){
 			  gapProblem newProb(problem);
 				if(problem.solutionList[job] != -1){
 						newProb.unlinkAgentFromJob(job);
@@ -207,7 +217,16 @@ std::vector<gapProblem> gapSolver::getSwapNeighbors(gapProblem problem, int job)
 
 	//for (int job = 0; job < solutionSize; ++job) {
 		for (int swapJob = job + 1; swapJob < problem.numberOfJobs; ++swapJob) {
-			if(problem.canSwapJobAgents(job,swapJob)){
+
+      if(solverPolicy == SolverPolicy::TS){
+        if(problem.solutionList[job] != -1 and problem.solutionList[swapJob] != -1){
+				gapProblem newProb(problem);
+				newProb.swapJobAgents(job,swapJob);
+				swapNeighbors.push_back(newProb);
+        }
+			}
+
+			else if(problem.canSwapJobAgents(job,swapJob)){
 				gapProblem newProb(problem);
 				newProb.swapJobAgents(job,swapJob);
 				swapNeighbors.push_back(newProb);
@@ -244,13 +263,14 @@ std::vector<gapProblem> gapSolver::getAllNeighbors(gapProblem problem) {
 
 gapProblem gapSolver::tabuSearch(gapProblem problem)
 {
-  int maximumTabuListLength = 50;
+  int maximumTabuListLength = 1000;
   int iterationsWithoutNewBest = 0;
+  int maximumIterationsWithoutNewBest = 30000;
   gapProblem best = getBestHeuristicSolution(problem); 
   auto solutionList = problem.solutionList;
   if(std::any_of(solutionList.begin(),solutionList.end(),[solutionList](int x){
     return x != -1;
-  })){
+    })){
     best = problem;
   }
   gapProblem candidateBest = best;
@@ -259,7 +279,7 @@ gapProblem gapSolver::tabuSearch(gapProblem problem)
   std::vector<gapProblem> neighbors;
   std::vector<gapProblem> longTermMemory;
 
-  while(iterationsWithoutNewBest <= 50){
+  while(iterationsWithoutNewBest <= maximumIterationsWithoutNewBest){
 	  for (int job = 0; job < problem.numberOfJobs; ++job) {
 		  neighbors = getNeighbors(candidateBest,job);
 		  if (neighbors.empty()) {
@@ -267,11 +287,11 @@ gapProblem gapSolver::tabuSearch(gapProblem problem)
 		  }
 			std::vector<gapProblem> augmentingCandidates;
 			std::copy_if(neighbors.begin(),neighbors.end(),std::back_inserter(augmentingCandidates),
-							[best](gapProblem p){return p.solutionValue > best.solutionValue; });
+							[candidateBest](gapProblem p){return p.relaxedObjFunc() > candidateBest.relaxedObjFunc(); });
 	
 			if(!augmentingCandidates.empty()){
 					auto maxElemIter = std::max_element(augmentingCandidates.begin(),augmentingCandidates.end(),
-					  [](gapProblem a, gapProblem b){ return a.solutionValue < b.solutionValue; });
+					  [](gapProblem a, gapProblem b){ return a.relaxedObjFunc() < b.relaxedObjFunc(); });
 					auto maxElem = *maxElemIter;
 					augmentingCandidates.erase(maxElemIter);
 					// keep other possible solutions in longTermMemory in order to escape local
@@ -281,11 +301,15 @@ gapProblem gapSolver::tabuSearch(gapProblem problem)
 					}
 					
 					if(std::find(linearTabuList.begin(),linearTabuList.end(),maxElem) == linearTabuList.end()){
-							if(linearTabuList.size() >= 50){
+							if(linearTabuList.size() >= maximumTabuListLength){
 									linearTabuList.pop_front();
 									linearTabuList.push_back(maxElem);
 							}
-							if(maxElem.solutionValue > best.solutionValue){
+
+              if(maxElem.relaxedObjFunc() > candidateBest.relaxedObjFunc()){
+                candidateBest = maxElem;
+              }
+							if(maxElem.isFeasible() && maxElem.relaxedObjFunc() > best.relaxedObjFunc()){
 									candidateBest = maxElem;
 									best = maxElem;
 									iterationsWithoutNewBest = 0;
@@ -390,7 +414,7 @@ gapProblem gapSolver::beesAlgorithm(gapProblem problem)
       {
         auto minElem = neighbors.back();
         neighbors.pop_back();
-        newBees.push_back(tabuSearch(randomEjectChain(minElem,chainLength)));
+        newBees.push_back(randomEjectChain(minElem,chainLength));
       }
       neighbors.insert(neighbors.end(),newBees.begin(),newBees.end()); 
       currentRandomizerIteration++;

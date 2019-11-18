@@ -57,7 +57,7 @@ public:
 
   void linkAgentToJob(int agent, int job)
   {
-    if (agent > numberOfAgents || job > numberOfJobs)
+    if (agent > numberOfAgents || job > numberOfJobs || agent < 0 || job < 0)
     {
       std::cerr << "Out Of Bounds "
                 << "Agent Index value:" << agent << std::endl;
@@ -162,8 +162,12 @@ public:
       std::cerr << "swap quebrado" << std::endl;
     }
 
-    unlinkAgentFromJob(firstJob);
-    unlinkAgentFromJob(secondJob);
+    if(firstAgent != -1){
+      unlinkAgentFromJob(firstJob);
+    }
+    if(secondAgent != -1){
+      unlinkAgentFromJob(secondJob);
+    }
 
     linkAgentToJob(firstAgent, secondJob);
     linkAgentToJob(secondAgent, firstJob);
@@ -198,7 +202,27 @@ public:
     }
     return boundValue;
   }
+  
+  int relaxedObjFunc () const{
+    int objValue = solutionValue;
+    for (size_t agent = 0; agent < numberOfAgents; agent++)
+    {
+      if(CurrentResourcePerAgent[agent] > MaximumResourcePerAgent[agent]){
+        objValue -= CurrentResourcePerAgent[agent] - MaximumResourcePerAgent[agent];
+      }
+    }
+    return objValue;
+  }
+  
+  bool isFeasible() {
+    std::vector<int> v(numberOfAgents);
+    std::iota (v.begin(),v.end(),0);
+    // reverse boolean logic because any_of can be faster than all_of
+    return !std::any_of(v.begin(),v.end(),
+    [this](int i){ return CurrentResourcePerAgent[i] >  MaximumResourcePerAgent[i];});
+  }
 };
+
 
 std::ostream &operator<<(std::ostream &os, gapProblem &problem);
 bool operator==(gapProblem a, gapProblem b);
